@@ -5,7 +5,7 @@
 
 有效的錯誤處理, 對於確保應用程式的穩定性和用戶體驗, 是非常重要的; 若系統沒有作好錯誤處理, 而呈現程式錯誤細節給使用者, 代表系統不穩定, 且用戶體驗會非常糟糕.   
 
-若您覺得這篇文章對您有幫助, 請不吝於在 <a href="https://github.com/jasper-lai/20240223_ASPNETCore8ErrorHandling" target="_blank">本文的 GitHub Repository</a> 上按星星, 謝謝.  
+若您覺得這篇文章對您有幫助, 請不吝於在筆者的 <a href="https://github.com/jasper-lai/20240223_ASPNETCore8ErrorHandling" target="_blank">GitHub Repository</a> 上按星星, 謝謝.  
 
 ### (一) 名詞定義
 
