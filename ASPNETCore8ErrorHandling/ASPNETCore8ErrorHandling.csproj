@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Middlewares\ExceptionResponseByMiddleware.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EditorConfigFiles Remove="D:\23-Projects.GitHub\21-Google_Blog\20240207_ASPNETCore8_ErrorHandling\ASPNETCore8ErrorHandling\ASPNETCore8ErrorHandling\.editorconfig" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="D:\23-Projects.GitHub\21-Google_Blog\20240207_ASPNETCore8_ErrorHandling\ASPNETCore8ErrorHandling\ASPNETCore8ErrorHandling\.editorconfig" />
+  </ItemGroup>
+
+</Project>

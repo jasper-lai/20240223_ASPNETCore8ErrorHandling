@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.8.34525.116
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ASPNETCore8ErrorHandling", "ASPNETCore8ErrorHandling\ASPNETCore8ErrorHandling.csproj", "{55BE2049-C031-438C-9F9A-E13DD7BF718E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MyBakeryMvcWeb", "MyBakeryMvcWeb\MyBakeryMvcWeb.csproj", "{50CC9A82-02AF-4210-A9EF-CA53580FF7C8}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{55BE2049-C031-438C-9F9A-E13DD7BF718E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{55BE2049-C031-438C-9F9A-E13DD7BF718E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{55BE2049-C031-438C-9F9A-E13DD7BF718E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{55BE2049-C031-438C-9F9A-E13DD7BF718E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{50CC9A82-02AF-4210-A9EF-CA53580FF7C8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{50CC9A82-02AF-4210-A9EF-CA53580FF7C8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{50CC9A82-02AF-4210-A9EF-CA53580FF7C8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{50CC9A82-02AF-4210-A9EF-CA53580FF7C8}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {9655CF0D-8E41-4B33-A760-EEAC8B6D75B7}
+	EndGlobalSection
+EndGlobal

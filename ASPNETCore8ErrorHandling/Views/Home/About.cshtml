@@ -1,0 +1,27 @@
+﻿@inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment Environment
+
+@{
+    ViewData["Title"] = "About";
+}
+<h1>@ViewData["Title"]</h1>
+
+<h3>
+    目前的執行環境為:
+
+    @if (Environment.IsDevelopment())
+    {
+        <span>開發</span>
+    }
+    else
+    {
+        <span>正式</span>
+    }
+</h3>
+
+<p>觸發例外狀況</p>
+
+<p>方式1: 網址列輸入 https://localhost:7244/Home/About/1 </p>
+
+<p>方式2: <a href="~/Home/About/1" target="_blank">點取連結</a></p>
+
+

@@ -1,0 +1,792 @@
+﻿<body>
+    <div style="font-size: medium;">
+        <h2 id="aspnet-mvc-及-aspnet-core-mvc-的錯誤處理">ASP.NET MVC 及 ASP.NET Core MVC 的錯誤處理</h2>
+        <p>Error Handling in ASP.NET MVC and ASP.NET Core MVC</p>
+        <h2 id="前言">前言</h2>
+        <p>有效的錯誤處理, 對於確保應用程式的穩定性和用戶體驗, 是非常重要的; 若系統沒有作好錯誤處理, 而呈現程式錯誤細節給使用者, 代表系統不穩定, 且用戶體驗會非常糟糕.</p>
+        <h3 id="一-名詞定義">(一) 名詞定義</h3>
+        <p>1.. 錯誤(Error): 係指框架 (ASP.NET 或 ASP.NET Core), 或應用程式自定義的例外 (Exception). 本文會說明如何將未通過資料檢核的錯誤, 包裝為自定義用戶端例外拋出. 以提供一致性的錯誤訊息規格.</p>
+        <p>2.. 錯誤處理(Error Handling): 係指錯誤取得 (Catch), 訊息規格 (Specification), 呈現 (Presentation), 及記錄 (Logging). 本文主要著重在錯誤取得及一致性錯誤訊息規格制訂.</p>
+        <h3 id="二-錯誤取得機制概要">(二) 錯誤取得機制概要</h3>
+        <p>ASP.NET Core 提供了中介軟體 (Middleware) 的機制, 讓開發人員可以在整個 HTTP Request / Response 的過程中, 進行例外的攔截.</p>
+        <p>MVC 框架本身 (含 ASP.NET MVC 及 ASP.NET Core MVC) 提供了例外過濾器 (Exception Filter) 的機制, 讓開發人員在 HTTP 訊息進入 MVC 的生命週後, 進行例外的攔截.</p>
+        <p>理解 <a href="https://learn.microsoft.com/en-us/aspnet/core/mvc/controllers/filters?view=aspnetcore-8.0" target="_blank">(Microsoft Learn) Filters in ASP.NET Core</a> 的 2 張圖, 對開發人員而言, 是非常重要的.</p>
+        <p>若要完全處理整個 Web 應用程式的例外, 實作方面的相關配套如下:</p>
+        <p>1.. ASP.NET MVC: 要搭配 Web.config 或 Global.asax + 自定義的 ErrorController.</p>
+        <p>2.. ASP.NET Core MVC: 可以自行撰寫 ASP.NET Core 的例外處理中介軟體 (Middleware).<br />
+            <strong>說明: Middleware 是屬於 ASP.NET Core, 不是 ASP.NET Core MVC; ASP.NET Core MVC 是建置在 ASP.NET Core 上的一個框架.</strong></p>
+        <p>3.. ASP.NET Core 8 以後提供了實作 IExceptionHandler 介面的方式, 簡化例外處理 Middleware 的撰寫, 內建的 app.UseExceptionHandler(), 其實也是一佪 Middleware, 會使用前述的類別, 攔截例外. 只是筆者能力有限, 目前遇到無法取得 routeData (ex: controller, action 名稱) 的問題, 雖然本文還是有提供範例, 但暫不推薦此方式.</p>
+        <h3 id="三-一致性的錯誤訊息規格概要">(三) 一致性的錯誤訊息規格概要</h3>
+        <p>回傳一致性的錯誤訊息, 對於系統的開發及對用戶體驗, 是非常有幫助的.</p>
+        <p>1.. ASP.NET MVC: 只能自定義錯誤訊息類別.</p>
+        <p>2.. ASP.NET Core MVC: 可採用自定義錯誤訊息類別, 或內建的 <a href="https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.problemdetails?view=aspnetcore-8.0" target="_blank">ProblemDetails</a> 類別.<br />
+            <strong>說明: ASP.NET Core 2.1 起, 有一個依 <a href="https://datatracker.ietf.org/doc/html/rfc7807" target="_blank">IETF &gt;RFC7807 規範</a> 設計的 ProblemDetails 類別, 用以統一回傳結果. 但也可視需求, 自行定義統一的回傳類別.</strong><br />
+            <strong>說明: 本文採自定義的 ErrorViewModel 類別作為回傳格式, 作為說明之用. 但最後仍補上採用 ProblemDetails 類別的範例.</strong></p>
+        <p>伺服端程式必須進行資料檢核, 才能去存取資料庫. 若資料檢核發現有誤, 代表用戶端沒有作好資料檢核的工作, 或者被瀏覽器的 F12 破解, 因此屬於用戶端的問題 (HTTP 4XX).</p>
+        <p>這類的錯誤, 需設計繼承自 Exception 類別的自定義例外類別, 當發生未通過檢核時, 打包為自訂例外拋出, 由前述的 Middleware 或 Exception Filter 攔截及處理.</p>
+        <p>上述的文字內容的思路, 可參考結論的流程圖.</p>
+        <h3 id="四-章節內容">(四) 章節內容</h3>
+        <p>本文將探討 ASP.NET MVC 及 ASP.NET Core MVC 中一些錯誤處理實作技巧.</p>
+        <p>一. <a href="#section1">預設的錯誤處理方式</a><br />
+            二. <a href="#section2">自定義統一的回傳的錯誤訊息規格</a><br />
+            三. <a href="#section3">自定義 Middleware, 用以產生貫穿 Request 軌跡的 TraceId</a><br />
+            四. <a href="#section4">撰寫 自定義例外 (Custom Exception), 供後續 Middleware 或 Filter 使用 </a><br />
+            五. <a href="#section5">自定義 Middleware 攔截例外 (ASP.NET Core)</a><br />
+            六. <a href="#section6">建立 Exception Filter (ASP.NET MVC or ASP.NET Core MVC)</a><br />
+            七. <a href="#section7">實作 IExceptionHandler (ASP.NET Core 8 and later)</a><br />
+            八. <a href="#section8">建立另一個 MVC 專案, 參考前述的例外處理專案</a></p>
+        <p>目前 GitHub 上的範例版本為最後一版, 請下載參考. 輸出結果, 若發現回傳值有 JSON 欄位名稱字首大小寫的差異 (例如: TraceId vs. traceId), 或者有增加欄位 (例如: ControllerName, ActionName), 請再自行參酌程式碼. 前者是因為在輸出 JSON 時, 有對 System.Text.Json 作了一些選項的設定; 後者是因為要寫 Log 時, 需要該欄位.</p>
+        <!--more-->
+        <h2 id="一-預設的錯誤處理方式-">一. 預設的錯誤處理方式 <a id="section1"></a></h2>
+        <p>以下是在只有加上拋出例外程式段的預設狀況.</p>
+        <p>1.. 加上製造例外的程式段.<br />
+            只要瀏覽到 ~/Home/About/1 就會發生例外.</p>
+        <pre><code class="language-csharp">public IActionResult About(int id = 0)
+{
+    if (id == 1)
+    {
+        _logger.LogError(&quot;傳入的參數值有誤&quot;);
+        throw new ArgumentException(&quot;傳入的參數值有誤&quot;);
+    }
+    return View();
+}
+</code></pre>
+        <p>2.. 預設會有 Middleware 攔截例外, 依是否為 Development 環境有不同的處理方式.</p>
+        <p><strong>以下 else 的部份, 是筆者自行加上去的, 預設是沒有的, 但有加上會比較清楚.</strong></p>
+        <p>若不在 Development 環境下, app.UseExceptionHandler(&quot;/Home/Error&quot;), 會將錯誤導向 /Home/Error 的頁面.
+            若是在 Development 環境下, app.UseDeveloperExceptionPage() 錯誤頁面會呈現.<br />
+            請留意: Error.cshtml 不在 Views/Home, 而是在 Views/Shared 之下.</p>
+        <pre><code class="language-csharp">if (!app.Environment.IsDevelopment())
+{
+    app.UseExceptionHandler(&quot;/Home/Error&quot;);
+    app.UseHsts();
+}
+else
+{
+    app.UseDeveloperExceptionPage();
+}
+</code></pre>
+        <p>(1) Production 環境下的截圖.<br />
+            <img src="pictures/01-1_ProductionErrorPage.png" alt="01 1_ProductionErrorPage" /></p>
+        <p>(2) Development 環境下的截圖.<br />
+            <img src="pictures/01-2_DevelopmentErrorPage.png" alt="01 2_DevelopmentErrorPage" /></p>
+        <p>3.. 在 VS 2022 之下, 預設是 Development, 要如何調整成 Production 呢? 請參考下圖.<br />
+            <img src="pictures/01-3_Switch_Dev_Prod.png" alt="01 3_Switch_Dev_Prod" /></p>
+        <p>4.. 在 瀏覽器 可以看到, 是回應 500 Internal Server Error.<br />
+            按理, 這是客戶端的錯誤, 不應該回傳 HTTP 500, 事實上, 可以把一些檢核錯誤, 轉換為自定義的 Exception 類別, 集中處理.<br />
+            <img src="pictures/01-4_500_internal_server_error.png" alt="01 4_500_internal_server_error" /></p>
+        <h2 id="二-自定義統一的回傳的錯誤訊息規格-">二. 自定義統一的回傳的錯誤訊息規格 <a id="section2"></a></h2>
+        <p>包含以下欄位, 其中 TraceId 為每次 Http Request 的唯一識別碼, 用以記錄至 Log.</p>
+        <pre><code class="language-csharp">public class ErrorViewModel
+{
+    /// &lt;summary&gt;
+    /// Http Request 唯一識別碼
+    /// &lt;/summary&gt;
+    public string? TraceId { get; set; }
+
+    /// &lt;summary&gt;
+    /// HTTP 狀態碼
+    /// &lt;/summary&gt;
+    public int StatusCode { get; set; } = (int)(HttpStatusCode.OK);
+
+    /// &lt;summary&gt;
+    /// HTTP 狀態碼列舉名稱
+    /// &lt;/summary&gt;
+    public string StatusCodeName { get; set; } = HttpStatusCode.OK.ToString();
+
+    /// &lt;summary&gt;
+    /// 訊息說明
+    /// &lt;/summary&gt;
+    public string Message { get; set; } = string.Empty;
+
+    public ErrorViewModel() { }
+}
+</code></pre>
+        <h2 id="三-自定義-middleware-用以產生貫穿-request-軌跡的-traceid-">三. 自定義 Middleware, 用以產生貫穿 Request 軌跡的 TraceId <a name="section3"></a></h2>
+        <p>1.. 類別本身</p>
+        <pre><code class="language-csharp">public class TraceIdMiddleware
+{
+    private readonly RequestDelegate _next;
+
+    public TraceIdMiddleware(RequestDelegate next)
+    {
+        _next = next;
+    }
+
+    public async Task InvokeAsync(HttpContext context)
+    {
+        context.TraceIdentifier = Guid.NewGuid().ToString();
+        string traceId = context.TraceIdentifier;
+        context.Response.Headers[&quot;X-Trace-Id&quot;] = traceId;
+        await _next(context);
+    }
+}
+</code></pre>
+        <p>2.. 註冊 (in Program.cs)</p>
+        <pre><code class="language-csharp">#region TraceIdMiddleware
+// 註冊自定義 HttpContext.TraceIdentifier 的 Middleware
+app.UseMiddleware&lt;TraceIdMiddleware&gt;();
+#endregion
+</code></pre>
+        <h2 id="四-撰寫-自定義例外-custom-exception-供後續-middleware-或-filter-使用-">四. 撰寫 自定義例外 (Custom Exception), 供後續 Middleware 或 Filter 使用 <a name="section4"></a></h2>
+        <p>撰寫 自定義例外 (Custom Exception), 將一些常見的用戶端錯誤, 通常是將未通過檢核的狀況, 轉換為自定義例外類別, 供程式拋出, 由 Middleware 或 Filter 攔截, 進行集中的處埋.</p>
+        <p>Custom Exception 類別繼承架構, 如下截圖及程式碼:</p>
+        <p><img src="pictures/03-CustomClientExceptions.png" alt="03 CustomClientExceptions" /></p>
+        <pre><code class="language-csharp">/// &lt;summary&gt;
+/// 抽象的自定義例外基底類別
+/// &lt;/summary&gt;
+public abstract class MyExceptionBase : Exception
+{
+    protected MyExceptionBase()
+    {
+    }
+
+    protected MyExceptionBase(string? message) : base(message)
+    {
+    }
+
+    protected MyExceptionBase(string? message, Exception? innerException)
+        : base(message, innerException)
+    {
+    }
+
+}
+</code></pre>
+        <pre><code class="language-csharp">#region 此區例外, 將會回傳 HTTP 4XX
+
+/// &lt;summary&gt;
+/// 用戶端資料未通過檢核: 發生空值
+/// &lt;/summary&gt;
+/// &lt;remarks&gt;會回傳 HTTP 400 Bad Request&lt;/remarks&gt;
+public class MyParamNullException : MyExceptionBase
+{
+    public override string Message { get; }
+
+    public MyParamNullException(string fieldDescription)
+    {
+        this.Message = $&quot;{fieldDescription} 不能為空!&quot;;
+    }
+}
+
+/// &lt;summary&gt;
+/// 用戶端資料未通過檢核: 超出範圍. 
+/// &lt;/summary&gt;
+/// &lt;remarks&gt;會回傳 HTTP 400 Bad Request&lt;/remarks&gt;
+public class MyOutRangeException : MyExceptionBase
+{
+    public override string Message { get; }
+
+    public MyOutRangeException(string fieldDescription)
+    {
+        this.Message = $&quot;{fieldDescription} 超出範圍!&quot;;
+    }
+}
+
+/// &lt;summary&gt;
+/// 用戶端資料未通過檢核: 資料不存在. 通常用在 查詢/更新/刪除
+/// &lt;/summary&gt;
+/// &lt;remarks&gt;會回傳 HTTP 404 Not Found&lt;/remarks&gt;
+public class MyDataNotExistException : MyExceptionBase
+{
+    public override string Message { get; }
+
+    public MyDataNotExistException(string fieldDescription)
+    {
+        this.Message = $&quot;{fieldDescription} 資料不存在!&quot;;
+    }
+}
+
+/// &lt;summary&gt;
+/// 用戶端資料未通過檢核: 資料已存在. 通常用在 新增
+/// &lt;/summary&gt;
+/// &lt;remarks&gt;會回傳 HTTP 409 Conflict&lt;/remarks&gt;
+public class MyDataExistException : MyExceptionBase
+{
+    public override string Message { get; }
+
+    public MyDataExistException(string fieldDescription)
+    {
+        this.Message = $&quot;{fieldDescription} 資料已存在!&quot;;
+    }
+}
+
+/// &lt;summary&gt;
+/// 用戶端資料未通過檢核: 未通過認證及授權
+/// &lt;/summary&gt;
+/// &lt;remarks&gt;會回傳 HTTP 401 Unauthorized&lt;/remarks&gt;
+public class MyUnauthorizedException : MyExceptionBase
+{
+    public override string Message { get; }
+
+    public MyUnauthorizedException()
+    {
+        this.Message = $&quot;您未通過認證及授權!&quot;;
+    }
+}
+
+/// &lt;summary&gt;
+/// 用戶端資料未通過檢核: 無存取此頁面功能的權限
+/// &lt;/summary&gt;
+/// &lt;remarks&gt;會回傳 HTTP 403 Forbidden&lt;/remarks&gt;
+public class MyForbiddenException : MyExceptionBase
+{
+    public override string Message { get; }
+
+    public MyForbiddenException()
+    {
+        this.Message = $&quot;您無存取此頁面功能的權限!&quot;;
+    }
+}
+
+/// &lt;summary&gt;
+/// 用戶端資料未通過檢核: 其它狀況
+/// &lt;/summary&gt;
+/// &lt;seealso cref=&quot;ASPNETCore8ErrorHandling.Filters.MyExceptionBase&quot; /&gt;
+/// &lt;remarks&gt;會回傳 HTTP 400 Bad Request&lt;/remarks&gt;
+public class MyClientException : MyExceptionBase
+{
+    public override string Message { get; }
+
+    public MyClientException(string description)
+    {
+        this.Message = $&quot;{description}&quot;;
+    }
+}
+
+#endregion
+
+</code></pre>
+        <h2 id="五-自定義-middleware-攔截例外-aspnet-core-">五. 自定義 Middleware 攔截例外 (ASP.NET Core) <a name="section5"></a></h2>
+        <p>本章節所撰寫的程式碼, 與 GitHub 的最後版本有不同, 但仍可自行實作測試.</p>
+        <h3 id="一-實作">(一) 實作</h3>
+        <p>1.. 修改 HomeController.cs 的 About() method, 改為抛出 MyClientException</p>
+        <pre><code class="language-csharp">public IActionResult About(int id = 0)
+{
+    if (id == 1)
+    {
+        _logger.LogError(&quot;傳入的參數值有誤&quot;);
+        throw new MyClientException(&quot;傳入的參數值有誤&quot;);
+    }
+    return View();
+}
+</code></pre>
+        <p>2.. 撰寫自定義的例外處理 Middleware</p>
+        <pre><code class="language-csharp">public class ExceptionHandlingMiddleware
+{
+    private readonly RequestDelegate _next;
+    private readonly ILogger&lt;ExceptionHandlingMiddleware&gt; _logger;
+
+    public ExceptionHandlingMiddleware(RequestDelegate next, ILogger&lt;ExceptionHandlingMiddleware&gt; logger)
+    {
+        _next = next;
+        _logger = logger;
+    }
+
+    public async Task InvokeAsync(HttpContext context)
+    {
+        try
+        {
+            await _next(context);
+        }
+        catch (Exception ex)
+        {
+            await HandleExceptionAsync(context, ex);
+        }
+    }
+
+    private async Task HandleExceptionAsync(HttpContext context, Exception exception)
+    {
+        // 取得 REQUEST 的唯一識別碼
+        var traceId = context.TraceIdentifier;
+        _logger.LogError(exception, &quot;traceId={traceId} --&gt; An unexpected error occurred.&quot;, traceId);
+
+        ErrorViewModel response = exception switch
+        {
+            ApplicationException _ =&gt; new ErrorViewModel()
+            { TraceId = traceId, StatusCode = (int)HttpStatusCode.BadRequest, StatusCodeName = HttpStatusCode.BadRequest.ToString(), Message = &quot;用戶端傳送資料有誤&quot; },
+            UnauthorizedAccessException _ =&gt; new()
+            { TraceId = traceId, StatusCode = (int)HttpStatusCode.Unauthorized, StatusCodeName = HttpStatusCode.Unauthorized.ToString(), Message = &quot;未通過認證授權&quot; },
+            _ =&gt; new()
+            { TraceId = traceId, StatusCode = (int)HttpStatusCode.InternalServerError, StatusCodeName = HttpStatusCode.InternalServerError.ToString(), Message = &quot;伺服器發生未預期的錯誤&quot; },
+        };
+        context.Response.ContentType = &quot;application/json&quot;;
+        context.Response.StatusCode = (int)response.StatusCode;
+        await context.Response.WriteAsJsonAsync(response);
+    }
+}
+</code></pre>
+        <p>3.. 註冊定義的例外處理 Middleware</p>
+        <pre><code class="language-csharp">// Configure the HTTP request pipeline.
+if (!app.Environment.IsDevelopment())
+{
+    app.UseExceptionHandler(&quot;/Home/Error&quot;);
+    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+    app.UseHsts();
+}
+else
+{
+    app.UseDeveloperExceptionPage();
+}
+
+// 註冊自定義產出 TraceId 的 Middleware
+app.UseMiddleware&lt;TraceIdMiddleware&gt;();
+
+// 註冊例外攔截的 Middleware
+// 注意: 這個必須排在預設內建的例外處理機制之後, 在發生例外時, 才能由自定義的 Middleware 作處理
+app.UseMiddleware&lt;ExceptionHandlingMiddleware&gt;();
+</code></pre>
+        <h3 id="二-實測">(二) 實測</h3>
+        <p>~/Home/About/1 會抛出 MyClientException, 但在前述的 ExceptionHandlingMiddleware 沒有特別攔截該項目, 而轉成 Http 500: InternalServerError.</p>
+        <p>1.. Request:<br />
+            https://localhost:7244/Home/About/1</p>
+        <p>2.. Response:</p>
+        <pre><code class="language-json">{
+    traceId: &quot;ec45159d-1ab9-4596-842e-faede72327c7&quot;,
+    statusCode: 500,
+    statusCodeName: &quot;InternalServerError&quot;,
+    message: &quot;伺服器發生未預期的錯誤&quot;
+}
+</code></pre>
+        <h2 id="六-建立-exception-filter-aspnet-mvc-or-aspnet-core-mvc-">六. 建立 Exception Filter (ASP.NET MVC or ASP.NET Core MVC) <a name="section6"></a></h2>
+        <p>Exception Filter 在 ASP.NET 時代的 MVC 就有了, 是內建於 MVC 的一個錯誤處理機制.</p>
+        <p>參考文件11.. 及 參考文件12.. 有建議採用 IExceptionHandler (ASP.NET Core 8 and later) 或自定義的 Middlewae (ASP.NET Core) 作全域錯誤的攔截, 而不要採用 MVC 本身的 Exception Filter.</p>
+        <p>但因為在 ASP.NET Core 以前, 大部份都是用這個方式作 MVC 錯誤攔截, 故還是提一下實作方式.</p>
+        <h3 id="一-實作-1">(一) 實作</h3>
+        <p>1.. 建立 Exception Filter</p>
+        <pre><code class="language-csharp">public class MyExceptionFilter : IExceptionFilter
+{
+    private readonly ILogger&lt;MyExceptionFilter&gt; _logger;
+
+    public MyExceptionFilter(ILogger&lt;MyExceptionFilter&gt; logger)
+    {
+        _logger = logger;
+    }
+
+    public void OnException(ExceptionContext context)
+    {
+        // STEP 1: 建立回傳物件
+        var exception = context.Exception;
+        var traceId = context.HttpContext.TraceIdentifier;   // 這個已經被 middleware 改成 GUID
+
+        ErrorViewModel result = exception switch
+        {
+            MyParamNullException _  or
+            MyOutRangeException  _  or
+            MyClientException    _ =&gt; new ErrorViewModel()
+            { TraceId = traceId, StatusCode = (int)HttpStatusCode.BadRequest, StatusCodeName = HttpStatusCode.BadRequest.ToString(), Message = exception.Message },
+
+            MyDataNotExistException _ =&gt; new ErrorViewModel()
+            { TraceId = traceId, StatusCode = (int)HttpStatusCode.NotFound, StatusCodeName = HttpStatusCode.NotFound.ToString(), Message = exception.Message },
+
+            MyDataExistException _ =&gt; new ErrorViewModel()
+            { TraceId = traceId, StatusCode = (int)HttpStatusCode.Conflict, StatusCodeName = HttpStatusCode.Conflict.ToString(), Message = exception.Message },
+
+            MyUnauthorizedException _ =&gt; new ErrorViewModel()
+            { TraceId = traceId, StatusCode = (int)HttpStatusCode.Unauthorized, StatusCodeName = HttpStatusCode.Unauthorized.ToString(), Message = exception.Message },
+
+            MyForbiddenException _ =&gt; new ErrorViewModel()
+            { TraceId = traceId, StatusCode = (int)HttpStatusCode.Forbidden, StatusCodeName = HttpStatusCode.Forbidden.ToString(), Message = exception.Message },
+
+            _ =&gt; new()
+            { TraceId = traceId, StatusCode = (int)HttpStatusCode.InternalServerError, StatusCodeName = HttpStatusCode.InternalServerError.ToString(), Message = &quot;伺服器發生未預期的錯誤&quot; },
+        };
+
+        // STEP 2: 設定已處理例外, 不再往外拋出
+        context.ExceptionHandled = true;
+
+        // STEP 3: 回傳結果 (JSON 格式)
+        context.Result = new JsonResult(result)
+        {
+            StatusCode = result.StatusCode // Optionally set the status code of the HTTP response
+        };
+
+        // STEP 4: 寫入至 Log
+        if (result.StatusCode &gt;= 400 &amp;&amp;  result.StatusCode &lt; 500 )
+            _logger.LogWarning(exception.Message);
+        if (result.StatusCode &gt;= 500)
+            _logger.LogError(exception.Message);
+    }
+}
+</code></pre>
+        <p>2.. 註冊 Exception Filter.</p>
+        <pre><code class="language-csharp">var builder = WebApplication.CreateBuilder(args);
+
+// {jasper} 註冊全域的 Exception Filter
+builder.Services.AddScoped&lt;MyExceptionFilter&gt;();
+builder.Services.AddControllersWithViews(options =&gt;
+{
+    options.Filters.AddService&lt;MyExceptionFilter&gt;();
+});
+
+var app = builder.Build();
+</code></pre>
+        <h3 id="二-實測-1">(二) 實測</h3>
+        <p>~/Home/About/1 會抛出 MyClientException, 會被 MyExceptionFilter 攔截到, 而轉成 Http 400: BadRequest</p>
+        <pre><code class="language-json">{
+    traceId: &quot;0a3a3c93-7dab-4e80-9cfc-45c4b5300f5e&quot;,
+    statusCode: 400,
+    statusCodeName: &quot;BadRequest&quot;,
+    message: &quot;傳入的參數值有誤&quot;
+}
+</code></pre>
+        <h2 id="七-實作-iexceptionhandler-aspnet-core-8-and-later-">七. 實作 IExceptionHandler (ASP.NET Core 8 and later) <a name="section7"></a></h2>
+        <p><strong>如同在前言所述的, 這個功能看來還是有一些問題, 筆者不推薦使用; 而是建議採 自定義 Middleware + ProblemDetails 類別. GitHub 上的程式版本, 即採用此方式.</strong></p>
+        <p><a href="https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.diagnostics.iexceptionhandler?view=aspnetcore-8.0" target="_blank">IExceptionHandler</a> 是 ASP.NET Core 8 新增加的介面. 該介面的實作類別, 會被內建的 app.UseExceptionHandler() 叫用.</p>
+        <p>需留意 ASP.NET Core 有提供一個 StatusCodes class, 與 HttpStatusCode enum 有所不同, 細節參考 [補充] 章節.</p>
+        <h3 id="一-撰寫回傳-errorviewmodel-的-globalexceptionhandler-類別">(一) 撰寫回傳 ErrorViewModel 的 GlobalExceptionHandler 類別.</h3>
+        <pre><code class="language-csharp">public class GlobalExceptionHandler : IExceptionHandler
+{
+    private readonly ILogger&lt;GlobalExceptionHandler&gt; _logger;
+
+    public GlobalExceptionHandler(ILogger&lt;GlobalExceptionHandler&gt; logger)
+    {
+        _logger = logger;
+    }
+
+    #region 方式一: 回傳自定義的錯誤類別
+
+    public async ValueTask&lt;bool&gt; TryHandleAsync(
+       HttpContext context,
+       Exception exception,
+       CancellationToken cancellationToken)
+    {
+       // STEP 1: 建立回傳物件
+       var traceId = context.TraceIdentifier;   // 這個已經被 middleware 改成 GUID
+
+       ErrorViewModel result = exception switch
+       {
+           MyParamNullException _ or
+           MyOutRangeException _ or
+           MyClientException _ =&gt; new ErrorViewModel()
+           { TraceId = traceId, StatusCode = (int)HttpStatusCode.BadRequest, StatusCodeName = HttpStatusCode.BadRequest.ToString(), Message = exception.Message },
+
+           MyDataNotExistException _ =&gt; new ErrorViewModel()
+           { TraceId = traceId, StatusCode = (int)HttpStatusCode.NotFound, StatusCodeName = HttpStatusCode.NotFound.ToString(), Message = exception.Message },
+
+           MyDataExistException _ =&gt; new ErrorViewModel()
+           { TraceId = traceId, StatusCode = (int)HttpStatusCode.Conflict, StatusCodeName = HttpStatusCode.Conflict.ToString(), Message = exception.Message },
+
+           MyUnauthorizedException _ =&gt; new ErrorViewModel()
+           { TraceId = traceId, StatusCode = (int)HttpStatusCode.Unauthorized, StatusCodeName = HttpStatusCode.Unauthorized.ToString(), Message = exception.Message },
+
+           MyForbiddenException _ =&gt; new ErrorViewModel()
+           { TraceId = traceId, StatusCode = (int)HttpStatusCode.Forbidden, StatusCodeName = HttpStatusCode.Forbidden.ToString(), Message = exception.Message },
+
+           _ =&gt; new()
+           { TraceId = traceId, StatusCode = (int)HttpStatusCode.InternalServerError, StatusCodeName = HttpStatusCode.InternalServerError.ToString(), Message = &quot;伺服器發生未預期的錯誤&quot; },
+       };
+
+       // STEP 2: 設定回傳的 response header
+       context.Response.StatusCode = result.StatusCode;
+
+       // STEP 3: 寫入至 Log
+       if (result.StatusCode &gt;= 400 &amp;&amp; result.StatusCode &lt; 500)
+           _logger.LogWarning(exception.Message);
+       if (result.StatusCode &gt;= 500)
+           _logger.LogError(exception, exception.Message);
+
+       // STEP 4: 回傳結果
+       await context.Response
+           .WriteAsJsonAsync(result, cancellationToken);
+
+       // STEP 5: 設定已處理例外, 不再往外拋出
+       return true;
+    }
+
+    #endregion
+}
+</code></pre>
+        <h3 id="二-撰寫回傳-problemdetails-的-globalexceptionhandler-類別-optional">(二) 撰寫回傳 ProblemDetails 的 GlobalExceptionHandler 類別. (optional)</h3>
+        <pre><code class="language-csharp">
+public class GlobalExceptionHandler : IExceptionHandler
+{
+    private readonly ILogger&lt;GlobalExceptionHandler&gt; _logger;
+
+    public GlobalExceptionHandler(ILogger&lt;GlobalExceptionHandler&gt; logger)
+    {
+        _logger = logger;
+    }
+
+    #region 方式二: 回傳 ASP.NET Core 內建的 ProblemDetails 類別
+
+    public async ValueTask&lt;bool&gt; TryHandleAsync(
+        HttpContext context,
+        Exception exception,
+        CancellationToken cancellationToken)
+    {
+
+        // STEP 1: 建立回傳物件
+        var traceId = context.TraceIdentifier;
+
+        ProblemDetails problemDetails = exception switch
+        {
+            MyParamNullException _ or
+            MyOutRangeException _ or
+            MyClientException _ =&gt; new ProblemDetails()
+            {
+                Title = HttpStatusCode.BadRequest.ToString(),
+                Status = StatusCodes.Status400BadRequest,
+            },
+
+            MyDataNotExistException _ =&gt; new ProblemDetails()
+            {
+                Title = HttpStatusCode.NotFound.ToString(),
+                Status = StatusCodes.Status404NotFound,
+            },
+
+            MyDataExistException _ =&gt; new ProblemDetails()
+            {
+                Title = HttpStatusCode.Conflict.ToString(),
+                Status = StatusCodes.Status409Conflict,
+            },
+
+            MyUnauthorizedException _ =&gt; new ProblemDetails()
+            {
+                Title = HttpStatusCode.Unauthorized.ToString(),
+                Status = StatusCodes.Status401Unauthorized,
+            },
+
+            MyForbiddenException _ =&gt; new ProblemDetails()
+            {
+                Title = HttpStatusCode.Forbidden.ToString(),
+                Status = StatusCodes.Status403Forbidden,
+            },
+
+            _ =&gt; new()
+            {
+                Title = HttpStatusCode.InternalServerError.ToString(),
+                Status = StatusCodes.Status500InternalServerError,
+            }
+        };
+
+        if (problemDetails.Status != StatusCodes.Status500InternalServerError)
+            problemDetails.Detail = exception.Message;
+        else
+            problemDetails.Detail = &quot;伺服器發生未預期的錯誤&quot;;
+
+        problemDetails.Instance = context.Request.Path;
+        problemDetails.Extensions.Add(&quot;traceId&quot;, traceId);
+
+        // STEP 2: 設定回傳的 response header
+        context.Response.StatusCode = problemDetails.Status ?? StatusCodes.Status500InternalServerError;
+
+        // STEP 3: 寫入至 Log
+        if (problemDetails.Status &gt;= 400 &amp;&amp; problemDetails.Status &lt; 500)
+            _logger.LogWarning(&quot;{ExceptionMessage}&quot;, exception.Message);
+        if (problemDetails.Status &gt;= 500)
+            _logger.LogError(exception, &quot;{ExceptionMessage}&quot;, exception.Message);
+
+        // STEP 4: 回傳結果
+        await context.Response
+            .WriteAsJsonAsync(problemDetails, cancellationToken);
+
+       // STEP 5: 設定已處理例外, 不再向外拋出
+        return true;
+    }
+
+    #endregion
+}
+
+</code></pre>
+        <h3 id="三-設置">(三) 設置</h3>
+        <p>修訂 Program.cs 的內容.</p>
+        <pre><code class="language-csharp">#region 註冊 GlobalExceptionHandler 及 ProblemDeatils 至 DI
+builder.Services.AddExceptionHandler&lt;GlobalExceptionHandler&gt;();
+builder.Services.AddProblemDetails();
+#endregion
+</code></pre>
+        <pre><code class="language-csharp">#region 使用內建的 ExceptionHandler
+app.UseExceptionHandler();
+#endregion
+</code></pre>
+        <h3 id="四-實測">(四) 實測</h3>
+        <p>1.. 自定義的 ErrorViewModel 類別.</p>
+        <pre><code class="language-json">{
+  traceId: &quot;d1d2538c-e27b-4ff7-b1a0-fcf653363377&quot;,
+  statusCode: 400,
+  statusCodeName: &quot;BadRequest&quot;,
+  message: &quot;傳入的參數值有誤&quot;
+}
+</code></pre>
+        <p>2.. ASP.NET Core 內建的 ProblemDetails 類別.</p>
+        <pre><code class="language-json">{
+  title: &quot;BadRequest&quot;,
+  status: 400,
+  detail: &quot;傳入的參數值有誤&quot;,
+  instance: &quot;/Home/About/1&quot;,
+  traceId: &quot;4bbf5f78-cacd-4033-80bf-b3fd37a03bcb&quot;
+}
+</code></pre>
+        <h2 id="八-建立另一個-mvc-專案-參考前述的例外處理專案-">八. 建立另一個 MVC 專案, 參考前述的例外處理專案 <a name="section8"></a></h2>
+        <h3 id="一-實作-2">(一) 實作</h3>
+        <p>1.. 加入一個 MVC 專案: MyBakeryMvcWeb</p>
+        <p>2.. 加入 ProductController / ProductService 及 相關的 View (.cshtml)</p>
+        <p>3.. 加入專案參考: ASPNETCore8ErrorHandling</p>
+        <p>4.. 執行 MyBakeryMvcWeb 看看, 會發生以下例外.</p>
+        <pre><code class="language-ini">AmbiguousMatchException: The request matched multiple endpoints. Matches:   MyBakeryMvcWeb.Controllers.HomeController.Index (MyBakeryMvcWeb)   ASPNETCore8ErrorHandling.Controllers.HomeController.Index (ASPNETCore8ErrorHandling)
+</code></pre>
+        <p>解決方式: 在 ASPNETCore8ErrorHandling HomeController 加上 route attribute; 如果要單獨執行 ASPNETCore8ErrorHandling 的話, 要把那個 route attribute 註解掉.</p>
+        <pre><code class="language-csharp">[Route(&quot;ASPNETCore8ErrorHandling/[controller]/[action]&quot;)]
+</code></pre>
+        <p>5.. 輸入資料檢核的部份:<br />
+            <strong>(1) 在 Action 將 ModelErrors 轉成字串, 包在 MyClientException 的 description 參數, 以統一處理.</strong></p>
+        <pre><code class="language-csharp">[HttpPost]
+public IActionResult CreateAjaxJson([FromBody] ProductViewModel product)
+{
+    // 處理 validation attribute (model binding) 檢核未過的錯誤
+    if (!ModelState.IsValid)
+    {
+        var description = this.ModelErrorToString();
+        throw new MyClientException(description); 
+    }
+    var result = _service.Create(product);
+    _logger.LogInformation(&quot;處理結果: {result}&quot;, result);
+    return View(&quot;Create&quot;,product);
+}
+</code></pre>
+        <p>(2) 輸出的JSON內容.</p>
+        <pre><code class="language-json">{
+    &quot;Title&quot;: &quot;BadRequest&quot;,
+    &quot;Status&quot;: 400,
+    &quot;Detail&quot;: &quot;輸入的資料有誤: \r\n產品名稱必須在 2 ~ 10 個字元之間\r\n訂購數量 的資料值, 必須介於 1 ~ 10.&quot;,
+    &quot;Instance&quot;: &quot;/Product/CreateAjaxJson&quot;,
+    &quot;TraceId&quot;: &quot;06a4755f-bbe5-4fc8-a8e3-e1206029fe26&quot;,
+    &quot;ControllerName&quot;: &quot;Product&quot;,
+    &quot;ActionName&quot;: &quot;CreateAjaxJson&quot;
+}
+</code></pre>
+        <p>6.. 修改 Create.cshtml: 完成所需的例外功能測試項目 button.</p>
+        <h3 id="二-實測-2">(二) 實測</h3>
+        <p>以下僅列出一些實測截圖. 有興趣可以自行實測看看.</p>
+        <p>1.. Model Validation Error 截圖
+            <img src="pictures/31-ValidationAttributeError.png" alt="31 ValidationAttributeError" /></p>
+        <p>2.. 自定義 Exception 截圖<br />
+            <img src="pictures/32-DataExistException.png" alt="32 DataExistException" /></p>
+        <p>3.. Internal Server Error 截圖<br />
+            <img src="pictures/33-InternalServerError.png" alt="33 InternalServerError" /></p>
+        <h2 id="結論">結論</h2>
+        <p>本篇整個思路架構如下圖, 黃底為筆者建議的實作方式, 供參考.<br />
+            <img src="pictures/11-ASP.NET_Core_MVC_Error_Handling.png" alt="11-ASP.NET_Core_MVC_Error_Handling" /></p>
+        <p>ASP.NET Core 的 Middleware 可以取代原本 MVC 的 Exception Filter 的功能, 涵蓋的範圍也更大. 亦即, 在 ASP.NET Core 的環境下, 只要實作 Middleware, 而不需實作 Exception Filter. 所以, 上圖在 ASP.NET Core 的環境下, Exception Filter 沒有被標記為黃底.</p>
+        <p>如筆者在前言所述, 如有發生例外時, 一般都會有記錄 controller 及 action 的需求, 因為筆者實測 ASP.NET Core 8 IExceptionHandler 的方式時, 會取不到 HttpContext 的路由資料 (RouteData), 故建議採用 自定義的例外處理 Middleware 的方式.</p>
+        <p>筆者有在 <a href="https://stackoverflow.com/questions/78039198/cannot-get-routedata-in-iexceptionhandler-tryhandleasync-for-asp-net-core-8" target="_blank">Stackflow</a> 提問, 但不確定是否能得到解答, 有興趣的朋友, 可以關注一下那則討論.</p>
+        <h2 id="參考文件">參考文件</h2>
+        <ul>
+            <li><a href="https://learn.microsoft.com/en-us/aspnet/core/mvc/controllers/filters?view=aspnetcore-8.0" target="_blank">1.. (Microsoft Learn) Filters in ASP.NET Core</a></li>
+        </ul>
+        <blockquote>
+            <p>這篇描述 ASP.NET Core Filters 的流程. 有 2 張重要的圖, 節錄如下:</p>
+        </blockquote>
+        <p><img src="pictures/21-ASP.NET_Core_Filters_1.png" alt="ASP.NET Core Filters 1" /><br />
+            <img src="pictures/22-ASP.NET_Core_Filters_2.png" alt="ASP.NET Core Filters 2" /></p>
+        <ul>
+            <li><a href="https://learn.microsoft.com/en-us/aspnet/core/fundamentals/error-handling?view=aspnetcore-8.0" target="_blank">2.. (Microsoft Learn) Handle errors in ASP.NET Core</a></li>
+        </ul>
+        <blockquote>
+            <p>ASP.NET Core 的錯誤處理: 主要針對 ASP.NET Core MVC</p>
+        </blockquote>
+        <ul>
+            <li><a href="https://learn.microsoft.com/en-us/aspnet/core/web-api/handle-errors?view=aspnetcore-8.0" target="_blank">3.. (Microsoft Learn) Handle errors in ASP.NET Core web APIs</a></li>
+        </ul>
+        <blockquote>
+            <p>ASP.NET Core Web APIs 的錯誤處理</p>
+        </blockquote>
+        <ul>
+            <li>
+                <p><a href="https://dev.to/andytechdev/aspnet-core-middleware-working-with-global-exception-handling-3hi0" target="_blank">4.. (Andy) ASP.NET Core Middleware: Working with Global Exception Handling</a></p>
+            </li>
+            <li>
+                <p><a href="https://stackoverflow.com/questions/67016969/traceid-requestid-and-traceidentifier-in-asp-net-core" target="_blank">5.. (StackOverflow) TraceId, RequestId, and TraceIdentifier in ASP.NET Core</a></p>
+            </li>
+        </ul>
+        <blockquote>
+            <p>有提到一個例子, 若 traceparent: 00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01, 則</p>
+        </blockquote>
+        <pre><code class="language-ini">Activity.TraceId:            0af7651916cd43dd8448eb211c80319c
+Activity.SpanId:             04dcdddd4175b2a4
+Activity.TraceFlags:         Recorded
+Activity.ParentSpanId:       b7ad6b7169203331
+Activity.ActivitySourceName: Microsoft.AspNetCore
+</code></pre>
+        <ul>
+            <li>
+                <p><a href="https://www.w3.org/TR/trace-context-1/#header-name" target="_blank">6.. (W3C) (202111) Trace Context</a></p>
+            </li>
+            <li>
+                <p><a href="https://github.com/dotnet/aspnetcore/issues/39873" target="_blank">7.. [Question] HttpContext.TraceIdentifier vs Activity.Current.Id #39873</a></p>
+            </li>
+        </ul>
+        <blockquote>
+            <p>這篇有詢問 HttpContext.TraceIdentifier vs Activity.Current.Id 的差異, 及寫入 Log 時, 應該要用那一個. 但沒有得到解答.</p>
+        </blockquote>
+        <ul>
+            <li><a href="https://www.codeproject.com/Tips/5337613/Use-GUID-as-TraceIdentifier-in-ASP-NET-Core-Web-AP" target="_blank">8.. (CodeProject) Use GUID as TraceIdentifier in ASP.NET Core Web API</a></li>
+        </ul>
+        <blockquote>
+            <p>這篇有提到利用自定義的 Middleware, 將預設由 Kestrel 產生的 TraceIdentifier /* 格式: {ConnectionId}:{Request number}, 範例: 0HLEACIU86PT7:00000005 */, 改採自行產生的 GUID 進行規換.<br />
+                <strong>有人回覆, 可以採用 OpenTelemetry <a href="https://github.com/open-telemetry/opentelemetry-dotnet" target="_blank">(GitHub) OpenTelemetry .NET</a>, 這個有空再試.</strong></p>
+        </blockquote>
+        <ul>
+            <li><a href="https://github.com/dotnet/docs/issues/34893" target="_blank">9.. [Breaking change]: Legacy serialization infrastructure APIs marked obsolete</a></li>
+        </ul>
+        <blockquote>
+            <p>這篇有提到自訂 Exception 序列化及反序列化舊有作法已過時的問題.</p>
+        </blockquote>
+        <ul>
+            <li><a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Status" target="_blank">10.. (mdn web docs) HTTP response status codes</a></li>
+        </ul>
+        <blockquote>
+            <p>這篇有列出 HTTP Status Code.</p>
+        </blockquote>
+        <ul>
+            <li><a href="https://learn.microsoft.com/en-us/aspnet/core/mvc/controllers/filters?view=aspnetcore-8.0#exception-filters" target="_blank">11.. (Microsoft Learn) Exception filters</a></li>
+        </ul>
+        <blockquote>
+            <p>Prefer middleware for exception handling.<br />
+                Use exception filters only where error handling differs based on which action method is called.</p>
+        </blockquote>
+        <ul>
+            <li>
+                <p><a href="https://www.milanjovanovic.tech/blog/global-error-handling-in-aspnetcore-8" target="_blank">12.. (Milan Jovanovic) Global Error Handling in ASP.NET Core 8</a></p>
+            </li>
+            <li>
+                <p><a href="https://medium.com/@mbektas0506/exception-handling-using-filters-in-asp-net-core-57eaca7053a4" target="_blank">13.. (Medium)(Mustafa Bekta) Exception Handling Using Filters in ASP.NET Core</a></p>
+            </li>
+            <li>
+                <p><a href="https://developercommunity.visualstudio.com/t/Cannot-get-routeData-in-IExceptionHandle/10586875" target="_blank">14-1.. (jasper) Cannot get routeData in IExceptionHandler.TryHandleAsync() for ASP.NET Core 8</a></p>
+            </li>
+            <li>
+                <p><a href="https://learn.microsoft.com/zh-tw/answers/questions/1567495/cannot-get-routedata-in-iexceptionhandler-tryhandl" target="_blank">14-2.. (jasper) Cannot get routeData in IExceptionHandler.TryHandleAsync() for ASP.NET Core 8</a></p>
+            </li>
+            <li>
+                <p><a href="https://stackoverflow.com/questions/78039198/cannot-get-routedata-in-iexceptionhandler-tryhandleasync-for-asp-net-core-8" target="_blank">14-3.. (jasper)(stakoverflow) Cannot get routeData in IExceptionHandler.TryHandleAsync() for ASP.NET Core 8</a></p>
+            </li>
+            <li>
+                <p><a href="https://github.com/jasper-lai/ExceptionHandler01" target="_blank">14-4.. (jasper) sample code repository for trying IExceptionHandler</a></p>
+            </li>
+            <li>
+                <p><a href="https://blog.darkthread.net/blog/aspnet-core-json-setting/" target="_blank">15.. (黑暗執行緒) ASP.NET Core JSON 中文編碼問題與序列化參數設定</a></p>
+            </li>
+            <li>
+                <p><a href="https://ryanlee.tw/2021/05/12/aspnetcore-model-binding/" target="_blank">16.. (Ryan Lee) ASP.NET Core Model Binding 死活綁不上 - 1</a></p>
+            </li>
+        </ul>
+        <blockquote>
+            <p>對於 ajax post JSON 資料而言, 在 MVC action 的參數, 必須加上 [FromBody] 的 binding attribute, 不然會 binding 不上.</p>
+        </blockquote>
+        <h2 id="補充">[補充]</h2>
+        <h3 id="一-traceidentifier-vs-activitycurrentid">(一) TraceIdentifier vs. Activity.Current.Id</h3>
+        <p>1.. TraceIdentifier 是 HttpContext 的一個屬性.<br />
+            2.. Activity 是 System.Diagnostics.Activity 類別, 其結果比較像是 參考文件5.. traceparent 的內容.</p>
+        <pre><code class="language-ini">TraceId: 0HN1APF86O2TV:0000000F
+TraceId 長度: 22 bytes
+Activity.Current.Id: 00-32c459d1987952263b28b9017dcb2b21-b2567a901e07ad79-00
+Activity.Current.Id 長度: 55 bytes
+</code></pre>
+        <p>(3) 觀察多個 Chrome 之下, 其 TraceId 的前半部是相同的 &quot;0HN1APF86O2TV&quot; (這個即 HttpContext.Connection.Id 的值), 只有 &quot;0000000F&quot; 會異動.<br />
+            <strong>(4) 參考文件8.. 有提到, 預設由 Kestrel 產生的 TraceIdentifier, 格式: {ConnectionId}:{Request number}, 範例: 0HLEACIU86PT7:00000005; 改採自行產生的 GUID 進行規換. 這樣可以比較容易確保唯一性.</strong></p>
+        <h3 id="二-statuscodes-class-vs-httpstatuscode-enum">(二) StatusCodes class vs HttpStatusCode enum</h3>
+        <p>1.. StatusCodes 是 Microsoft.AspNetCore.Http 命名空間中的類別, 提供 HTTP 狀態碼的常數, 通常用於 ASP.NET Core 應用程序中直接設置 HTTP Response 狀態碼.<br />
+            2.. HttpStatusCode 是 System.Net 命名空間中的列舉, 用於在 .NET 應用程序中以更結構化的方式處理 HTTP Response 狀態碼.</p>
+    </div>
+</body>
