@@ -1,9 +1,13 @@
 ﻿<body>
     <div style="font-size: medium;">
-        <h2 id="aspnet-mvc-及-aspnet-core-mvc-的錯誤處理">ASP.NET MVC 及 ASP.NET Core MVC 的錯誤處理</h2>
-        <p>Error Handling in ASP.NET MVC and ASP.NET Core MVC</p>
+        <!-- <h2 id="aspnet-mvc-及-aspnet-core-mvc-的錯誤處理">ASP.NET MVC 及 ASP.NET Core MVC 的錯誤處理</h2> -->
+        <h2>Error Handling in ASP.NET MVC and ASP.NET Core MVC</h2>
+        <p></p>
         <h2 id="前言">前言</h2>
         <p>有效的錯誤處理, 對於確保應用程式的穩定性和用戶體驗, 是非常重要的; 若系統沒有作好錯誤處理, 而呈現程式錯誤細節給使用者, 代表系統不穩定, 且用戶體驗會非常糟糕.</p>
+        <p>
+            若您覺得這篇文章對您有幫助, 請不吝於在筆者的 <a href="https://github.com/jasper-lai/20240223_ASPNETCore8ErrorHandling" target="_blank">GitHub Repository</a> 上按星星, 謝謝.  
+        </p>
         <h3 id="一-名詞定義">(一) 名詞定義</h3>
         <p>1.. 錯誤(Error): 係指框架 (ASP.NET 或 ASP.NET Core), 或應用程式自定義的例外 (Exception). 本文會說明如何將未通過資料檢核的錯誤, 包裝為自定義用戶端例外拋出. 以提供一致性的錯誤訊息規格.</p>
         <p>2.. 錯誤處理(Error Handling): 係指錯誤取得 (Catch), 訊息規格 (Specification), 呈現 (Presentation), 及記錄 (Logging). 本文主要著重在錯誤取得及一致性錯誤訊息規格制訂.</p>
@@ -35,7 +39,7 @@
             六. <a href="#section6">建立 Exception Filter (ASP.NET MVC or ASP.NET Core MVC)</a><br />
             七. <a href="#section7">實作 IExceptionHandler (ASP.NET Core 8 and later)</a><br />
             八. <a href="#section8">建立另一個 MVC 專案, 參考前述的例外處理專案</a></p>
-        <p>目前 GitHub 上的範例版本為最後一版, 請下載參考. 輸出結果, 若發現回傳值有 JSON 欄位名稱字首大小寫的差異 (例如: TraceId vs. traceId), 或者有增加欄位 (例如: ControllerName, ActionName), 請再自行參酌程式碼. 前者是因為在輸出 JSON 時, 有對 System.Text.Json 作了一些選項的設定; 後者是因為要寫 Log 時, 需要該欄位.</p>
+        <p>目前 GitHub 上的範例版本為最後一版, <a href="https://github.com/jasper-lai/20240223_ASPNETCore8ErrorHandling" target="_blank">請下載參考</a>. 輸出結果, 若發現回傳值有 JSON 欄位名稱字首大小寫的差異 (例如: TraceId vs. traceId), 或者有增加欄位 (例如: ControllerName, ActionName), 請再自行參酌程式碼. 前者是因為在輸出 JSON 時, 有對 System.Text.Json 作了一些選項的設定; 後者是因為要寫 Log 時, 需要該欄位.</p>
         <!--more-->
         <h2 id="一-預設的錯誤處理方式-">一. 預設的錯誤處理方式 <a id="section1"></a></h2>
         <p>以下是在只有加上拋出例外程式段的預設狀況.</p>
@@ -67,14 +71,14 @@ else
 }
 </code></pre>
         <p>(1) Production 環境下的截圖.<br />
-            <img src="pictures/01-1_ProductionErrorPage.png" alt="01 1_ProductionErrorPage" /></p>
+            <img src="https://github.com/jasper-lai/20240223_ASPNETCore8ErrorHandling/blob/master/pictures/01-1_ProductionErrorPage.png?raw=true" alt="01 1_ProductionErrorPage" /></p>
         <p>(2) Development 環境下的截圖.<br />
-            <img src="pictures/01-2_DevelopmentErrorPage.png" alt="01 2_DevelopmentErrorPage" /></p>
+            <img src="https://github.com/jasper-lai/20240223_ASPNETCore8ErrorHandling/blob/master/pictures/01-2_DevelopmentErrorPage.png?raw=true" alt="01 2_DevelopmentErrorPage" /></p>
         <p>3.. 在 VS 2022 之下, 預設是 Development, 要如何調整成 Production 呢? 請參考下圖.<br />
-            <img src="pictures/01-3_Switch_Dev_Prod.png" alt="01 3_Switch_Dev_Prod" /></p>
+            <img src="https://github.com/jasper-lai/20240223_ASPNETCore8ErrorHandling/blob/master/pictures/01-3_Switch_Dev_Prod.png?raw=true" alt="01 3_Switch_Dev_Prod" /></p>
         <p>4.. 在 瀏覽器 可以看到, 是回應 500 Internal Server Error.<br />
             按理, 這是客戶端的錯誤, 不應該回傳 HTTP 500, 事實上, 可以把一些檢核錯誤, 轉換為自定義的 Exception 類別, 集中處理.<br />
-            <img src="pictures/01-4_500_internal_server_error.png" alt="01 4_500_internal_server_error" /></p>
+            <img src="https://github.com/jasper-lai/20240223_ASPNETCore8ErrorHandling/blob/master/pictures/01-4_500_internal_server_error.png?raw=true" alt="01 4_500_internal_server_error" /></p>
         <h2 id="二-自定義統一的回傳的錯誤訊息規格-">二. 自定義統一的回傳的錯誤訊息規格 <a id="section2"></a></h2>
         <p>包含以下欄位, 其中 TraceId 為每次 Http Request 的唯一識別碼, 用以記錄至 Log.</p>
         <pre><code class="language-csharp">public class ErrorViewModel
@@ -131,7 +135,7 @@ app.UseMiddleware&lt;TraceIdMiddleware&gt;();
         <h2 id="四-撰寫-自定義例外-custom-exception-供後續-middleware-或-filter-使用-">四. 撰寫 自定義例外 (Custom Exception), 供後續 Middleware 或 Filter 使用 <a name="section4"></a></h2>
         <p>撰寫 自定義例外 (Custom Exception), 將一些常見的用戶端錯誤, 通常是將未通過檢核的狀況, 轉換為自定義例外類別, 供程式拋出, 由 Middleware 或 Filter 攔截, 進行集中的處埋.</p>
         <p>Custom Exception 類別繼承架構, 如下截圖及程式碼:</p>
-        <p><img src="pictures/03-CustomClientExceptions.png" alt="03 CustomClientExceptions" /></p>
+        <p><img src="https://github.com/jasper-lai/20240223_ASPNETCore8ErrorHandling/blob/master/pictures/03-CustomClientExceptions.png?raw=true" alt="03 CustomClientExceptions" /></p>
         <pre><code class="language-csharp">/// &lt;summary&gt;
 /// 抽象的自定義例外基底類別
 /// &lt;/summary&gt;
@@ -659,14 +663,14 @@ public IActionResult CreateAjaxJson([FromBody] ProductViewModel product)
         <h3 id="二-實測-2">(二) 實測</h3>
         <p>以下僅列出一些實測截圖. 有興趣可以自行實測看看.</p>
         <p>1.. Model Validation Error 截圖
-            <img src="pictures/31-ValidationAttributeError.png" alt="31 ValidationAttributeError" /></p>
+            <img src="https://github.com/jasper-lai/20240223_ASPNETCore8ErrorHandling/blob/master/pictures/31-ValidationAttributeError.png?raw=true" alt="31 ValidationAttributeError" /></p>
         <p>2.. 自定義 Exception 截圖<br />
-            <img src="pictures/32-DataExistException.png" alt="32 DataExistException" /></p>
+            <img src="https://github.com/jasper-lai/20240223_ASPNETCore8ErrorHandling/blob/master/pictures/32-DataExistException.png?raw=true" alt="32 DataExistException" /></p>
         <p>3.. Internal Server Error 截圖<br />
-            <img src="pictures/33-InternalServerError.png" alt="33 InternalServerError" /></p>
+            <img src="https://github.com/jasper-lai/20240223_ASPNETCore8ErrorHandling/blob/master/pictures/33-InternalServerError.png?raw=true" alt="33 InternalServerError" /></p>
         <h2 id="結論">結論</h2>
         <p>本篇整個思路架構如下圖, 黃底為筆者建議的實作方式, 供參考.<br />
-            <img src="pictures/11-ASP.NET_Core_MVC_Error_Handling.png" alt="11-ASP.NET_Core_MVC_Error_Handling" /></p>
+            <img src="https://github.com/jasper-lai/20240223_ASPNETCore8ErrorHandling/blob/master/pictures/11-ASP.NET_Core_MVC_Error_Handling.png?raw=true" alt="11-ASP.NET_Core_MVC_Error_Handling" /></p>
         <p>ASP.NET Core 的 Middleware 可以取代原本 MVC 的 Exception Filter 的功能, 涵蓋的範圍也更大. 亦即, 在 ASP.NET Core 的環境下, 只要實作 Middleware, 而不需實作 Exception Filter. 所以, 上圖在 ASP.NET Core 的環境下, Exception Filter 沒有被標記為黃底.</p>
         <p>如筆者在前言所述, 如有發生例外時, 一般都會有記錄 controller 及 action 的需求, 因為筆者實測 ASP.NET Core 8 IExceptionHandler 的方式時, 會取不到 HttpContext 的路由資料 (RouteData), 故建議採用 自定義的例外處理 Middleware 的方式.</p>
         <p>筆者有在 <a href="https://stackoverflow.com/questions/78039198/cannot-get-routedata-in-iexceptionhandler-tryhandleasync-for-asp-net-core-8" target="_blank">Stackflow</a> 提問, 但不確定是否能得到解答, 有興趣的朋友, 可以關注一下那則討論.</p>
@@ -677,8 +681,8 @@ public IActionResult CreateAjaxJson([FromBody] ProductViewModel product)
         <blockquote>
             <p>這篇描述 ASP.NET Core Filters 的流程. 有 2 張重要的圖, 節錄如下:</p>
         </blockquote>
-        <p><img src="pictures/21-ASP.NET_Core_Filters_1.png" alt="ASP.NET Core Filters 1" /><br />
-            <img src="pictures/22-ASP.NET_Core_Filters_2.png" alt="ASP.NET Core Filters 2" /></p>
+        <p><img src="https://github.com/jasper-lai/20240223_ASPNETCore8ErrorHandling/blob/master/pictures/21-ASP.NET_Core_Filters_1.png?raw=true" alt="ASP.NET Core Filters 1" /><br />
+            <img src="https://github.com/jasper-lai/20240223_ASPNETCore8ErrorHandling/blob/master/pictures/22-ASP.NET_Core_Filters_2.png?raw=true" alt="ASP.NET Core Filters 2" /></p>
         <ul>
             <li><a href="https://learn.microsoft.com/en-us/aspnet/core/fundamentals/error-handling?view=aspnetcore-8.0" target="_blank">2.. (Microsoft Learn) Handle errors in ASP.NET Core</a></li>
         </ul>

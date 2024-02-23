@@ -1,9 +1,11 @@
 ## ASP.NET MVC 及 ASP.NET Core MVC 的錯誤處理
-Error Handling in ASP.NET MVC and ASP.NET Core MVC
+## Error Handling in ASP.NET MVC and ASP.NET Core MVC  
 
 ## 前言
 
 有效的錯誤處理, 對於確保應用程式的穩定性和用戶體驗, 是非常重要的; 若系統沒有作好錯誤處理, 而呈現程式錯誤細節給使用者, 代表系統不穩定, 且用戶體驗會非常糟糕.   
+
+若您覺得這篇文章對您有幫助, 請不吝於在 <a href="https://github.com/jasper-lai/20240223_ASPNETCore8ErrorHandling" target="_blank">本文的 GitHub Repository</a> 上按星星, 謝謝.  
 
 ### (一) 名詞定義
 
@@ -57,7 +59,7 @@ MVC 框架本身 (含 ASP.NET MVC 及 ASP.NET Core MVC) 提供了例外過濾器
 七. [實作 IExceptionHandler (ASP.NET Core 8 and later)](#section7)  
 八. [建立另一個 MVC 專案, 參考前述的例外處理專案](#section8)  
 
-目前 GitHub 上的範例版本為最後一版, 請下載參考. 輸出結果, 若發現回傳值有 JSON 欄位名稱字首大小寫的差異 (例如: TraceId vs. traceId), 或者有增加欄位 (例如: ControllerName, ActionName), 請再自行參酌程式碼.  前者是因為在輸出 JSON 時, 有對 System.Text.Json 作了一些選項的設定; 後者是因為要寫 Log 時, 需要該欄位.    
+目前 GitHub 上的範例版本為最後一版, <a href="https://github.com/jasper-lai/20240223_ASPNETCore8ErrorHandling" target="_blank">請下載參考</a>. 輸出結果, 若發現回傳值有 JSON 欄位名稱字首大小寫的差異 (例如: TraceId vs. traceId), 或者有增加欄位 (例如: ControllerName, ActionName), 請再自行參酌程式碼.  前者是因為在輸出 JSON 時, 有對 System.Text.Json 作了一些選項的設定; 後者是因為要寫 Log 時, 需要該欄位.    
 <!--more-->
 
 ## 一. 預設的錯誤處理方式 <a id="section1"></a>
