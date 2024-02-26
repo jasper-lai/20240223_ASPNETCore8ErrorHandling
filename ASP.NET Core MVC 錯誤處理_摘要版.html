@@ -1,6 +1,6 @@
 ﻿<body>
     <div style="font-size: medium;">
-        <h1 id="aspnet-core-mvc-錯誤處理_摘要版">ASP.NET Core MVC 錯誤處理_摘要版</h1>
+        <!-- <h1 id="aspnet-core-mvc-錯誤處理_摘要版">ASP.NET Core MVC 錯誤處理_摘要版</h1> -->
         <p>這篇係針對前一篇文章, 摘錄筆者認為在 ASP.NET Core 8 MVC 框架下的適宜作法.<br />
             這篇不作太多的文字說明, 主要是描述實作程序, 及相關程式碼.</p>
         <h2 id="章節內容">章節內容</h2>
@@ -22,6 +22,7 @@
                 </ul>
             </li>
         </ul>
+<!--more-->        
         <hr />
         <h2 id="壹-相關資源-">壹. 相關資源 <a id="section1"></a></h2>
         <ul>
@@ -31,15 +32,18 @@
         <hr />
         <h2 id="貳-文章摘要-建議的方案-">貳. 文章摘要 (建議的方案) <a id="section2"></a></h2>
         <h3 id="一-aspnet-core-mvc-訊息流程-">一. ASP.NET Core MVC 訊息流程 <a id="section2_1"></a></h3>
-        <p><img src="https://github.com/jasper-lai/20240223_ASPNETCore8ErrorHandling/blob/master/pictures2/11-ASP.NET_Core_Middleware.png" alt="ASP.NETCoreMiddleware" /><br />
-           <img src="https://github.com/jasper-lai/20240223_ASPNETCore8ErrorHandling/blob/master/pictures2/12-ASP.NET_Core_MVC_Filters.png" alt="ASP.NETCoreMvcFilter" /></p>
+        <p><img src="https://github.com/jasper-lai/20240223_ASPNETCore8ErrorHandling/blob/master/pictures2/11-ASP.NET_Core_Middleware.png?raw=true" alt="ASP.NETCoreMiddleware" /><br />
+           <img src="https://github.com/jasper-lai/20240223_ASPNETCore8ErrorHandling/blob/master/pictures2/12-ASP.NET_Core_MVC_Filters.png?raw=true" alt="ASP.NETCoreMvcFilter" /></p>
         <hr />
         <h3 id="二-實作-基礎-mvc-專案--">二. 實作 基礎 MVC 專案 <a id="section2_2"></a></h3>
         <p>該專案主要提供以下功能:<br />
-            (1) 自定義例外類別<br />
-            (2) 例外攔截的 Middleware: 會在這裡把所有的例外, 轉為對應的 HTTP Response</p>
+            (1) 自定義例外類別<br />  
+            (2) 取得唯一 Request 識別碼的 Middleware<br />  
+            (3) 例外攔截的 Middleware: 會在這裡把所有的例外, 轉為對應的 HTTP Response<br />  
+            (4) 針對 Validation Attribute 撰寫 Action Filter<br />  
+        </p>
         <h4 id="一-定義例外類別-">(一) 定義例外類別 <a id="section2_2_1"></a></h4>
-        <p><img src="https://github.com/jasper-lai/20240223_ASPNETCore8ErrorHandling/blob/master/pictures2/21-CustomClientExceptions.png" alt="CustomClientException" /></p>
+        <p><img src="https://github.com/jasper-lai/20240223_ASPNETCore8ErrorHandling/blob/master/pictures2/21-CustomClientExceptions.png?raw=true" alt="CustomClientException" /></p>
         <h4 id="二-撰寫產生-http-rqrp-的唯一識別碼-的-middleware-">(二) 撰寫產生 HTTP RQ/RP 的唯一識別碼 的 Middleware <a id="section2_2_2"></a></h4>
         <pre><code class="language-csharp">public class TraceIdMiddleware
 {

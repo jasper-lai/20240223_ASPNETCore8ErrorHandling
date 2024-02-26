@@ -7,7 +7,7 @@
 
 若您覺得這篇文章對您有幫助, 請不吝於在筆者的 <a href="https://github.com/jasper-lai/20240223_ASPNETCore8ErrorHandling" target="_blank">GitHub Repository</a> (可在 Repository 下載範例程式) 上按星星, 謝謝.  
 
-如果只關心 ASP.NET Core MVC 的實作程序及程式碼, 可以直接看筆者的另一篇文章: ASP.NET Core MVC 錯誤處理_摘要版.  
+如果只關心 ASP.NET Core MVC 的實作程序及程式碼, 可以直接看筆者的另一篇文章: <a href="https://www.jasperstudy.com/2024/02/aspnet-core-mvc-error-handling.html" target="_blank"> ASP.NET Core MVC Error Handling 摘要版</a> .  
 
 ### (一) 名詞定義
 

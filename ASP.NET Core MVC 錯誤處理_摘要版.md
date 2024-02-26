@@ -1,5 +1,5 @@
 
-# ASP.NET Core MVC 錯誤處理_摘要版
+# ASP.NET Core MVC Error Handling 摘要版
 
 這篇係針對前一篇文章, 摘錄筆者認為在 ASP.NET Core 8 MVC 框架下的適宜作法.  
 這篇不作太多的文字說明, 主要是描述實作程序, 及相關程式碼.  
@@ -21,6 +21,8 @@
 
 <hr />
 
+<!--more-->
+
 ## 壹. 相關資源 <a id="section1"></a>
 
 * (Google Blog) https://www.jasperstudy.com/2024/02/aspnet-mvc-aspnet-core-mvc.html
@@ -41,7 +43,9 @@ ________________________________________
 
 該專案主要提供以下功能:  
 (1) 自定義例外類別  
-(2) 例外攔截的 Middleware: 會在這裡把所有的例外, 轉為對應的 HTTP Response  
+(2) 取得唯一 Request 識別碼的 Middleware  
+(3) 例外攔截的 Middleware: 會在這裡把所有的例外, 轉為對應的 HTTP Response  
+(4) 針對 Validation Attribute 撰寫 Action Filter  
 
 #### (一) 定義例外類別 <a id="section2_2_1"></a>  
 ![CustomClientException](pictures2/21-CustomClientExceptions.png)  
