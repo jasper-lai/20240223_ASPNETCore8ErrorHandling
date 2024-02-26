@@ -1,10 +1,26 @@
+using ASPNETCore8ErrorHandling.Filters;
 using ASPNETCore8ErrorHandling.Middlewares;
 using MyBakeryMvcWeb.Services;
+using System.Text.Encodings.Web;
+using System.Text.Unicode;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews(options =>
+    {
+        // 註冊全域的 Filter
+        options.Filters.Add(new ValidateModelAttribute());
+    })
+    .AddJsonOptions(jsonOptions =>
+    {
+        // PropertyNamingPolicy = JsonNamingPolicy.CamelCase,   
+        // null: 維持 C# 字首大寫的 json 欄位格式.
+        jsonOptions.JsonSerializerOptions.PropertyNamingPolicy = null;
+        //允許基本拉丁英文及中日韓文字維持原字元
+        jsonOptions.JsonSerializerOptions.Encoder =
+            JavaScriptEncoder.Create(UnicodeRanges.BasicLatin, UnicodeRanges.CjkUnifiedIdeographs);
+    });
 
 builder.Services.AddScoped<IProductService, ProductService>();
 

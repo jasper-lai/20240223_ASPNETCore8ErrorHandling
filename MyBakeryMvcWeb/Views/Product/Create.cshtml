@@ -98,12 +98,14 @@
         //==== 頁面初始 ====
         //#region
         $().ready(function () {
+            // makeInvalidProductObject ==>
             $("#btnCreateAjaxForm").click(function () {
                 btnCreateAjaxForm();
             });
             $("#btnCreateAjaxJson").click(function () {
                 btnCreateAjaxJson();
             });
+            // makeProductObject
             $("#btnParamNullException").click(function () {
                 btnParamNullException();
             });
@@ -125,9 +127,14 @@
         //==== 建立一個無法通過檢核的 Product 物件 (Ajax 使用) ====
         //#region
         function makeInvalidProductObject() {
+            // ModelValidation by Attribute
             $('#Name').val('法式文青彩繪風格費南雪');
             $('#OrderQty').val(-1);
-            $('#UnitPrice').val(-1);
+            $('#UnitPrice').val(30);
+            //// ModelValidation by UserCode (for UnitPrice)
+            //$('#Name').val('費南雪');
+            //$('#OrderQty').val(1);
+            //$('#UnitPrice').val(-1);
             let id = parseInt($('#Id').val());
             let name = $('#Name').val();
             let orderQty = parseInt($('#OrderQty').val());

@@ -7,17 +7,20 @@ using System.Text.Unicode;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllersWithViews()
-    .AddJsonOptions(options =>
+builder.Services.AddControllersWithViews(options =>
     {
-
+        // 註冊全域的 Filter
+        options.Filters.Add(new ValidateModelAttribute());
+    })
+    .AddJsonOptions(jsonOptions =>
+    {
         // 預設第一字母轉小寫 (camel), 若要改成 C# 的字首大寫格式 (Pascal), 要設為 null 
         // 重要: 若設成字首小寫, 則自行在 ProblemDetails 擴增的欄位 (TraceId, ControllerName...), 並不會轉小寫!!!
         //
         // PropertyNamingPolicy = JsonNamingPolicy.CamelCase,   
-        options.JsonSerializerOptions.PropertyNamingPolicy = null; 
+        jsonOptions.JsonSerializerOptions.PropertyNamingPolicy = null; 
         //允許基本拉丁英文及中日韓文字維持原字元
-        options.JsonSerializerOptions.Encoder =
+        jsonOptions.JsonSerializerOptions.Encoder =
             JavaScriptEncoder.Create(UnicodeRanges.BasicLatin, UnicodeRanges.CjkUnifiedIdeographs);
     }); 
 

@@ -47,14 +47,16 @@
         [HttpPost]
         public IActionResult CreateAjaxForm(ProductViewModel product)
         {
-
-            // 處理 validation attribute (model binding) 檢核未過的錯誤
-            if (!ModelState.IsValid)
-            {
-                var description = this.ModelErrorToString();
-                throw new MyClientException(description);
-                //return BadRequest(ModelState);
-            }
+            // -----------------
+            // 以下已經移到 Action Filter 作處理了
+            // -----------------
+            //// 處理 validation attribute (model binding) 檢核未過的錯誤
+            //if (!ModelState.IsValid)
+            //{
+            //    var description = this.ModelErrorToString();
+            //    throw new MyClientException(description);
+            //    //return BadRequest(ModelState);
+            //}
 
             var result = _service.Create(product);
             _logger.LogInformation("處理結果: {result}", result);
@@ -66,13 +68,16 @@
         public IActionResult CreateAjaxJson([FromBody] ProductViewModel product)
         {
 
-            // 處理 validation attribute (model binding) 檢核未過的錯誤
-            if (!ModelState.IsValid)
-            {
-                var description = this.ModelErrorToString();
-                throw new MyClientException(description); 
-                //return BadRequest(ModelState);
-            }
+            // -----------------
+            // 以下已經移到 Action Filter 作處理了
+            // -----------------
+            //// 處理 validation attribute (model binding) 檢核未過的錯誤
+            //if (!ModelState.IsValid)
+            //{
+            //    var description = this.ModelErrorToString();
+            //    throw new MyClientException(description); 
+            //    //return BadRequest(ModelState);
+            //}
 
             var result = _service.Create(product);
             _logger.LogInformation("處理結果: {result}", result);
@@ -84,12 +89,6 @@
         {
 
             throw new MyParamNullException("產品名稱");
-            //if (!ModelState.IsValid)
-            //{
-            //    // Inspect ModelState for errors
-            //    return BadRequest(ModelState);
-            //}
-            //return View(product);
         }
 
         [HttpPost]
@@ -115,7 +114,7 @@
         [HttpPost]
         public IActionResult OccursIOException([FromBody] ProductViewModel product)
         {
-            throw new System.IO.IOException("費南雪密笈 不存在");
+            throw new System.IO.IOException("費南雪武功密笈 不存在");
         }
     }
 }
