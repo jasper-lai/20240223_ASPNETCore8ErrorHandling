@@ -3,6 +3,7 @@
     using ASPNETCore8ErrorHandling.Filters;
     using ASPNETCore8ErrorHandling.Models;
     using Microsoft.AspNetCore.Mvc;
+    using Microsoft.AspNetCore.Mvc.Controllers;
     using System.Net;
     using System.Text.Encodings.Web;
     using System.Text.Json;
@@ -109,11 +110,30 @@
         private async Task HandleExceptionAsync(HttpContext context, Exception exception)
         {
 
-            // STEP 1: 取得 controller name / action name / trace id
-            var routeData = context.GetRouteData();
-            var controllerName = routeData?.Values["controller"]?.ToString();
-            var actionName = routeData?.Values["action"]?.ToString();
+            // STEP 1: 取得 trace id / controller name / action name
             var traceId = context.TraceIdentifier;
+            string? controllerName = null;
+            string? actionName = null;
+
+            //// 方式 1: 利用 RouteData 只能取到 controller 的簡名 (不含 namespace)
+            //var routeData = context.GetRouteData();
+            //controllerName = routeData?.Values["controller"]?.ToString();
+            //actionName = routeData?.Values["action"]?.ToString();
+
+            // 方式 2: 利用 Endpoint 可取到 controller 的全名 (含 namespace)
+            var endpoint = context.GetEndpoint();
+
+            if (endpoint != null)
+            {
+                var actionDescriptor = endpoint.Metadata.GetMetadata<ControllerActionDescriptor>();
+
+                if (actionDescriptor != null)
+                {
+                    // controllerName = actionDescriptor.ControllerName;
+                    controllerName = actionDescriptor.ControllerTypeInfo.FullName;
+                    actionName = actionDescriptor.ActionName;
+                }
+            }
 
             // STEP 2: 建立回傳物件
             ProblemDetails response = exception switch
