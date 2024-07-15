@@ -11,6 +11,7 @@ builder.Services.AddControllersWithViews(options =>
     {
         // 註冊全域的 Filter
         options.Filters.Add(new ValidateModelAttribute());
+        options.Filters.Add(new 計算Action執行時間Attribute());
     })
     .AddJsonOptions(jsonOptions =>
     {
