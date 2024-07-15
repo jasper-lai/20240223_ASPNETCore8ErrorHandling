@@ -7,7 +7,14 @@
     using MyBakeryMvcWeb.ViewModels;
 
     //[Route("[controller]/[action]")]
-    [ServiceFilter<CalcActionExecTimeAttribute>()]
+
+    //將套用 ServiceFilterAttribute 的寫法, 由 [ServiceFilter<CalcActionExecTimeAttribute>()] 改為 [ServiceFilter(typeof(CalcActionExecTimeAttribute))]
+    //查 ServiceFilterAttribute<T> 程式
+    //public ServiceFilterAttribute() : base(typeof(TFilter)) { }
+    //==> 2 種寫法都可以
+
+    //[ServiceFilter<CalcActionExecTimeAttribute>()]
+    [ServiceFilter(typeof(CalcActionExecTimeAttribute))]
     public class ProductController : BaseController
     {
         private readonly IProductService _service;
