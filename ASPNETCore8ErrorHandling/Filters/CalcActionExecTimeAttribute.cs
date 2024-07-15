@@ -3,11 +3,11 @@
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.AspNetCore.Mvc.Filters;
 
-    public class 計算Action執行時間Attribute : ActionFilterAttribute
+    public class CalcActionExecTimeAttribute : ActionFilterAttribute
     {
-        private readonly ILogger<計算Action執行時間Attribute> _logger;
+        private readonly ILogger<CalcActionExecTimeAttribute> _logger;
 
-        public 計算Action執行時間Attribute(ILogger<計算Action執行時間Attribute> logger)
+        public CalcActionExecTimeAttribute(ILogger<CalcActionExecTimeAttribute> logger)
         {
             _logger = logger;
         }
