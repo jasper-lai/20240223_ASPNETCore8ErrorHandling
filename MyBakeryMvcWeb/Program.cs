@@ -10,8 +10,13 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllersWithViews(options =>
     {
         // 註冊全域的 Filter
+        // 如果套用到全域, 可以不用管 DI 的問題, logger 會自動注入
+        // 如果套用到 Controller, 則需要利用 ServiceFilterAttribute
+        // options.Filters.Add<計算Action執行時間Attribute>();
         options.Filters.Add(new ValidateModelAttribute());
-        options.Filters.Add(new 計算Action執行時間Attribute());
+        ////以下這個寫法, 會出 CS7036 的錯誤
+        ////未提供任何可對應到 '計算Action執行時間Attribute.計算Action執行時間Attribute(ILogger<計算Action執行時間Attribute>)' 之必要參數 'logger' 的引數
+        //options.Filters.Add(new 計算Action執行時間Attribute());
     })
     .AddJsonOptions(jsonOptions =>
     {
@@ -24,6 +29,7 @@ builder.Services.AddControllersWithViews(options =>
     });
 
 builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<計算Action執行時間Attribute>();
 
 var app = builder.Build();
 

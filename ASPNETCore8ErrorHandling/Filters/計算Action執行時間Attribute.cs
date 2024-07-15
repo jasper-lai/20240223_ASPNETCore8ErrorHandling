@@ -5,6 +5,13 @@
 
     public class 計算Action執行時間Attribute : ActionFilterAttribute
     {
+        private readonly ILogger<計算Action執行時間Attribute> _logger;
+
+        public 計算Action執行時間Attribute(ILogger<計算Action執行時間Attribute> logger)
+        {
+            _logger = logger;
+        }
+
         public override void OnActionExecuting(ActionExecutingContext context)
         {
             // 計算開始時間
@@ -29,7 +36,8 @@
                 var controllerName = context.RouteData.Values["controller"];
                 var actionName = context.RouteData.Values["action"];
                 var message = $"Controller: {controllerName}, Action: {actionName}, Duration: {duration.TotalMilliseconds} ms";
-                Console.WriteLine(message);
+                //Console.WriteLine(message);
+                _logger.LogInformation("Controller: {controllerName}, Action: {actionName}, Duration: {duration_ms} ms", controllerName, actionName, duration.TotalMilliseconds);
             }
 
             base.OnActionExecuted(context);

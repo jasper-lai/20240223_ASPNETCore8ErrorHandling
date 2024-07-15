@@ -7,6 +7,7 @@
     using MyBakeryMvcWeb.ViewModels;
 
     //[Route("[controller]/[action]")]
+    [ServiceFilter<計算Action執行時間Attribute>()]
     public class ProductController : BaseController
     {
         private readonly IProductService _service;
